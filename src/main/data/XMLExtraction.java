@@ -10,14 +10,14 @@ import java.util.regex.Pattern;
  */
 public class XMLExtraction {
 
-    public static void readDataFromDirectory(String directoryPath, ArrayList<String> sayList) {
+    public static void readDataFromDirectory(String directoryPath, ArrayList<Data> sayList) {
 
         File directory = new File(directoryPath);
         File[] fList = directory.listFiles();
         for (File file : fList) {
             if (file.isFile()) {
                 String filepath = file.getAbsolutePath();
-                if (filepath.endsWith(".xml")) {
+                if (filepath.endsWith(".xml") && isProcessed(sayList, filepath)==false) {
                     readXML(filepath, sayList);
                 }
             } else if (file.isDirectory()) {
@@ -29,7 +29,7 @@ public class XMLExtraction {
     /** **************************************************************
      * Read data from XML file, add all "say" statement into sayList
      */
-    public static void readXML(String filepath, ArrayList<String> sayList) {
+    public static void readXML(String filepath, ArrayList<Data> sayList) {
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(filepath));
@@ -37,8 +37,13 @@ public class XMLExtraction {
             while (line != null) {
                 String[] elements = extractElements(line);
                 if (elements != null) {
-                    if (elements[1] != null)
-                        sayList.add(elements[1]);
+                    if (elements[1] != null) {
+                        Data data = new Data();
+                        data.statement = elements[1];
+                        data.type = "say";
+                        data.source = filepath;
+                        sayList.add(data);
+                    }
                 }
                 line = br.readLine();
             }
@@ -91,6 +96,23 @@ public class XMLExtraction {
         System.out.println("-----------------------------------------------\n");
     }
 
+    /** **************************************************************
+     * check if the current file has been processed before due to the
+     * duplicate files in different directories
+     */
+    public static boolean isProcessed(ArrayList<Data> sayList, String filepath) {
+
+        for (Data data : sayList) {
+            String existed_filepath = data.source;
+            String existed_filename = existed_filepath.substring(existed_filepath.lastIndexOf('/')+1);
+            String current_filename = filepath.substring(filepath.lastIndexOf('/')+1);
+
+            if (current_filename.equals(existed_filename))
+                return true;
+        }
+        return false;
+    }
+
     public static void test1() {
 
         String input = "    <userTask id=\"sid-c7fa5f25-0ff6-4572-af53-51403e19f719\" name=\"Say hi\" activiti:exclusive=\"false\"/>";
@@ -114,10 +136,10 @@ public class XMLExtraction {
     public static void test2() {
 
         String inputPath = "/Users/qingqingcai/Documents/IntellijWorkspace/BPN/data/bpn_2/bpm-model/greeting_customized_6.bpmn20.xml";
-        ArrayList<String> sayList = new ArrayList<String>();
+        ArrayList<Data> sayList = new ArrayList<Data>();
         readXML(inputPath, sayList);
-        for (String s : sayList)
-            System.out.println(s);
+        for (Data data : sayList)
+            System.out.println(data.statement);
     }
 
     public static void main(String[] args) {
@@ -126,10 +148,13 @@ public class XMLExtraction {
     //    test2();
 
         String directory = "/Users/qingqingcai/Documents/IntellijWorkspace/BPN/data";
-        ArrayList<String> sayList = new ArrayList<String>();
+        ArrayList<Data> sayList = new ArrayList<Data>();
         readDataFromDirectory(directory, sayList);
-        for (String s : sayList) {
-            System.out.println(s);
+        for (Data data : sayList) {
+            System.out.println("\n-----------------------------------------------------");
+            System.out.println(data.source);
+            System.out.println(data.statement);
+            System.out.println("-----------------------------------------------------");
         }
         System.out.println("\n#statement = " + sayList.size());
     }
@@ -195,4 +220,10 @@ public class XMLExtraction {
      return node.getNodeValue();
      }
      **/
+}
+
+class Data {
+    String statement;
+    String type;
+    String source;
 }
